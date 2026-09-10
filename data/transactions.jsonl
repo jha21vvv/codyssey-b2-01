@@ -1,0 +1,5 @@
+{"id": "2d259817", "type": "income", "date": "2026-09-09", "amount": 13000, "category": "식비", "memo": "점심 특식", "tags": ["점식"]}
+{"id": "4f67feec", "type": "income", "date": "2026-05-02", "amount": 3500000, "category": "식비", "memo": "5월 급여", "tags": ["월급"]}
+{"id": "c679291c", "type": "expense", "date": "2026-05-15", "amount": 1500, "category": "교통", "memo": "지하철 이", "tags": ["출근"]}
+{"id": "e64d6c29", "type": "income", "date": "2026-05-02", "amount": 3500000, "category": "식비", "memo": "5월 급여", "tags": ["월급"]}
+{"id": "9840a032", "type": "expense", "date": "2026-05-15", "amount": 1500, "category": "교통", "memo": "지하철 이", "tags": ["출근"]}

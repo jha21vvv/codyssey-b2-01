@@ -1,2 +1,258 @@
-# codyssey-b2-01
-GitHub 저장소(Repository)의 목적과 성격에 맞춰 선택할 수 있는 영문 Description 옵션입니다.  간결한 기본형 (추천)  A robust CLI household ledger application in Python featuring generator streaming, custom decorators, and strict typing.
+# 1. 파일구조
+
+'''
+budget_app/
+├── __init__.py
+├── __main__.py          # python -m budget_app 진입점
+├── models.py            # 데이터 모델 (dataclass)
+├── decorators.py        # 공통 관심사 데코레이터
+├── repositories.py      # 파일 I/O 및 스트리밍 제너레이터
+├── services.py          # 비즈니스 로직
+└── cli.py               # argparse CLI 인터페이스
+'''
+
+# 2.
+# 콘솔 가계부 애플리케이션 (`budget_app`)
+
+순수 Python 3.10+ 표준 라이브러리만을 활용하여 구축한 파일 기반의 견고한 CLI 가계부 서비스입니다.  
+대용량 데이터 환경에서도 안정적으로 동작하도록 **제너레이터 스트리밍 파이프라인**, **원자적 파일 쓰기(Atomic Replace)**, **계층화 아키텍처(Layered Architecture)**를 적용했습니다.
+
+---
+
+## 1. 프로젝트 아키텍처 (계층 분리)
+
+단일 책임 원칙(SRP)에 따라 역할을 명확히 분리한 4계층 구조로 설계되었습니다:
+
+- **모델 (`models.py`)**: `dataclass` 기반 거래(`Transaction`), 예산(`Budget`) 데이터 구조 및 불변 유효성 검증
+- **저장소 (`repositories.py`)**: JSONL 파일 영구 저장, `yield` 기반 라인 스트리밍 I/O, 원자적 교체(`os.replace`)를 통한 데이터 손상 방지
+- **서비스 (`services.py`)**: 거래 CRUD, 복합 조건 검색, 월별 수지 집계, 예산 초과 계산, 카테고리 참조 무결성 검증, CSV 처리
+- **CLI 프레젠테이션 (`cli.py`, `decorators.py`)**: `argparse` 기반 명령어/옵션 파싱, 대화형(`input()`) 순차 입력, 스택트레이스를 차단하고 종료 코드(`exit code 1`)를 제어하는 에러 핸들러
+
+---
+
+## 2. 데이터 저장 정책 및 포맷
+
+- **저장 위치**: `./data/` (명령 실행 시 `--data-dir <경로>` 옵션으로 자유롭게 변경 가능)
+- **저장 포맷**: 라인 단위 JSONL (UTF-8 인코딩)
+- **분리 저장되는 3대 영구 파일**:
+  1. `transactions.jsonl`: 전체 수입 및 지출 거래 내역[cite: 1]
+  2. `categories.jsonl`: 등록된 카테고리 명단 (최초 실행 시 기본 카테고리 자동 시딩)[cite: 1]
+  3. `budgets.jsonl`: 월별 설정 예산 데이터[cite: 1]
+
+---
+
+## 3. 실행 방법 및 주요 명령어 가이드
+
+### 공통 옵션 및 도움말 확인
+모든 명령어는 리눅스 표준인 `--` 접두사를 사용하며, `--help`를 통해 상세 설명을 확인할 수 있습니다[cite: 1].
+
+
+**구현 요건 최종 점검**
+
+* **책임 분리 아키텍처**: Model, Repository, Service, CLI, Decorator가 최소 3개 이상(총 6개)의 모듈로 분리되었습니다[cite: 1].
+* **CLI 표준 규약 준수**: 모든 플래그가 `--` 형태로 일원화되었으며, `--help` 동작이 자동 구성되었습니다[cite: 1].
+* **패키지 진입점 완성**: `python -m budget_app` 호출 시 `__main__.py` $\rightarrow$ `cli.py` $\rightarrow$ `@handle_cli_errors` 순으로 제어 흐름이 이어져 안전한 종료와 직관적인 오류 메시지를 보장합니다[cite: 1].
+* **문서화 요건 완료**: 실행 명령, 파일 저장 정책, CSV 스키마 테이블을 포함하는 `README.md`가 완비되었습니다[cite: 1].
+```bash
+# 전체 명령어 도움말
+python -m budget_app --help
+
+# 특정 하위 명령어 도움말 (예: search)
+python -m budget_app search --help
+```
+
+```bash
+프로젝트 초기 폴더 구성부터 모든 기능(10개)을 순차적으로 테스트하고 검증할 수 있는 터미널 명령어 전체 흐름입니다.
+
+---
+
+**0. 환경 준비 및 디렉터리 세팅**
+
+터미널을 열고 코드가 들어있는 `budget_app` 패키지 바로 바깥(상위 폴더) 위치에서 실행합니다.
+
+```bash
+# 1. 파이썬 버전 확인 (3.10 이상 필수)
+python --version
+
+# 2. 패키지 도움말 및 전체 커맨드 목록 확인
+python -m budget_app --help
+
+```
+
+---
+
+**1. 거래 추가 (`add`) - 대화형 입력**
+
+프롬프트를 실행하면 6단계 질문이 순차적으로 나타납니다.
+
+```bash
+python -m budget_app add
+
+```
+
+* **터미널 입력 예시**:
+* `1. 날짜 (YYYY-MM-DD):` `2026-05-01`
+* `2. 타입 (income/expense):` `expense`
+* `3. 카테고리:` `식비`
+* `4. 금액 (양수 정수):` `12000`
+* `5. 메모 (선택 사항, 없으면 Enter):` `점심 김치찌개`
+* `6. 태그 (선택 사항, 쉼표로 구분):` `외식,점심`
+* *출력: 거래가 성공적으로 저장되었습니다. (생성된 ID: `a1b2c3d4`)*
+
+
+
+
+*(몇 가지 테스트 데이터를 더 추가해 둡니다)*
+
+```bash
+# 수입 등록
+python -m budget_app add
+# (날짜: 2026-05-10, 타입: income, 카테고리: 급여, 금액: 3500000, 메모: 5월 월급, 태그: 월급)
+
+# 추가 지출 등록
+python -m budget_app add
+# (날짜: 2026-05-15, 타입: expense, 카테고리: 교통, 금액: 1500, 메모: 지하철 이용, 태그: 출근)
+
+```
+
+---
+
+**2. 거래 목록 조회 (`list`)**
+
+최신순(날짜 역순)으로 정렬되어 출력됩니다.
+
+```bash
+# 기본값(최대 10건) 조회
+python -m budget_app list
+
+# 건수 제한 옵션 (--limit N)
+python -m budget_app list --limit 2
+
+```
+
+---
+
+**3. 거래 조건 검색 (`search`)**
+
+모든 옵션은 조합해서 사용할 수 있습니다.
+
+```bash
+# 기간 검색 (--from, --to)
+python -m budget_app search --from 2026-05-01 --to 2026-05-10
+
+# 카테고리 일치 검색 (--category)
+python -m budget_app search --category 식비
+
+# 수입/지출 타입 필터링 (--type)
+python -m budget_app search --type income
+
+# 메모 키워드 검색 (--q)
+python -m budget_app search --q 김치찌개
+
+# 태그 검색 (--tag)
+python -m budget_app search --tag 외식
+
+# 여러 조건 동시 검색
+python -m budget_app search --category 식비 --type expense --q 점심
+
+```
+
+---
+
+**4. 거래 수정 (`update`)**
+
+수정할 대상의 `id`를 지정하고, 바꾸려는 필드만 옵션으로 전달합니다. (여기서 `a1b2c3d4`는 실제 발급된 ID로 변경하세요.)
+
+```bash
+# 금액과 메모만 수정
+python -m budget_app update --id a1b2c3d4 --amount 13000 --memo "점심 특식"
+
+# 날짜와 카테고리 수정
+python -m budget_app update --id a1b2c3d4 --date 2026-05-02 --category 식비
+
+```
+
+---
+
+**5. 거래 삭제 (`delete`)**
+
+```bash
+# 특정 ID 삭제
+python -m budget_app delete --id a1b2c3d4
+
+# 없는 ID 입력 시 안전 처리 확인
+python -m budget_app delete --id nonexistent_id
+
+```
+
+---
+
+**6. 카테고리 관리 (`category`)**
+
+```bash
+# 1. 등록된 전체 카테고리 목록 확인
+python -m budget_app category list
+
+# 2. 새 카테고리 추가
+python -m budget_app category add 문화생활
+
+# 3. 중복 추가 차단 검증 (에러 메시지 및 종료 코드 1 확인)
+python -m budget_app category add 문화생활
+
+# 4. 미사용 카테고리 삭제
+python -m budget_app category remove 문화생활
+
+# 5. 기존 거래에서 사용 중인 카테고리 삭제 시도 (참조 무결성 차단 검증)
+python -m budget_app category remove 식비
+
+```
+
+---
+
+**7. 예산 설정 (`budget`) 및 월별 요약 (`summary`)**
+
+```bash
+# 1. 2026년 5월 예산 500,000원으로 설정
+python -m budget_app budget set --month 2026-05 --amount 500000
+
+# 2. 2026년 5월 가계부 요약 리포트 조회 (기본 상위 3개 카테고리)
+python -m budget_app summary --month 2026-05
+
+# 3. 상위 카테고리 개수 변경 옵션 (--top)
+python -m budget_app summary --month 2026-05 --top 5
+
+# 4. 거래 내역이 없는 달 조회 (데이터 없음 안내 확인)
+python -m budget_app summary --month 2020-01
+
+```
+
+---
+
+**8. CSV 내보내기 (`export`) 및 가져오기 (`import`)**
+
+```bash
+# 1. 월 지정 내보내기 (UTF-8, 헤더 포함 고정)
+python -m budget_app export --out ./may_backup.csv --month 2026-05
+
+# 2. 기간 지정 내보내기
+python -m budget_app export --out ./q2_backup.csv --from 2026-04-01 --to 2026-06-30
+
+# 3. CSV 파일로부터 거래 내역 일괄 가져오기
+python -m budget_app import --from ./may_backup.csv
+
+```
+
+---
+
+**9. 저장 데이터 디렉터리 변경 옵션 (`--data-dir`)**
+
+모든 커맨드 앞이나 뒤에 `--data-dir`를 붙이면 기본 `./data` 대신 다른 폴더를 사용할 수 있습니다.
+
+```bash
+# test_data 폴더를 저장소로 사용하여 목록 조회
+python -m budget_app --data-dir ./test_data list
+
+# test_data 폴더에 6월 예산 설정
+python -m budget_app --data-dir ./test_data budget set --month 2026-06 --amount 1000000
+
+```
