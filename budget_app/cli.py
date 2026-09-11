@@ -69,6 +69,7 @@ from .services import BudgetService
 
 # [1차 설명]: 올바른 날짜를 입력받을 때까지 계속 질문하는 함수입니다.
 # [2차 설명]: prompt는 '질문을 던져 입력을 유도하다'라는 뜻으로, 손님에게 날짜를 묻고 오타가 나면 다시 묻는 창구입니다.
+# 마이: 이 함수가 문자열(str)을 반환한다고 표시
 def prompt_date() -> str:
     # [1차 설명]: 올바른 날짜가 입력되어 return을 만날 때까지 영원히 반복합니다.
     # [2차 설명]: while True는 '조건이 참인 한 무한히 반복하라'는 뜻으로, 손님이 똑바로 적을 때까지 질문을 반복하는 루프입니다.
@@ -153,6 +154,7 @@ def prompt_amount() -> int:
         try:
             # [1차 설명]: 문자열을 정수(Integer) 숫자로 변환합니다.
             # [2차 설명]: int("12000")은 글자 "12000"을 컴퓨터가 계산할 수 있는 진짜 숫자 12000으로 바꾸는 함수입니다.
+            # 마이: 밸류 값에 음수가 들어와도 -100처럼 마이너스 값이 되긴함.
             num = int(val)
             # [1차 설명]: 금액 숫자가 0보다 큰 양수인지 확인합니다.
             # [2차 설명]: num > 0은 1원 이상의 진짜 돈인지 검사하는 조건문입니다.
@@ -193,6 +195,7 @@ def prompt_tags() -> List[str]:
         return []
     # [1차 설명]: 쉼표(,)를 기준으로 글자를 자르고 각 단어의 공백을 제거하여 리스트로 만듭니다.
     # [2차 설명]: val.split(",")는 쉼표를 가위 삼아 단어를 싹둑 자르고, t.strip()으로 빈칸을 다듬어 리스트로 모으는 리스트 내포 문법입니다.
+    # 마이: ,단위로 나눠서 리스트화 한(val.split(",")) 다음에, 그걸 반복하고, 그 결과가 if t.strip()로 값이 존재하는지 확인한 다음, 있으면 []의 리스트 안에 넣어서 최종적으로 리스트화된 태그가 나옴.
     return [t.strip() for t in val.split(",") if t.strip()]
 
 
@@ -202,7 +205,9 @@ def prompt_tags() -> List[str]:
 
 # [1차 설명]: 어떤 에러가 터져도 에어백이 안전하게 받아내도록 데코레이터를 장착합니다.
 # [2차 설명]: @handle_cli_errors는 이 함수 아래에서 무슨 실수가 나든 무서운 영어 에러 대신 친절한 한국어 안내를 띄워주는 안전장치입니다.
+# 마이: 데코레이터는 원래 함수에 “포장(wrapper)”을 씌웁니다. 그래서 run_cli()를 호출하면 실제로는 포장된 함수가 먼저 실행, 포장된 함수는 원래 함수를 실행해 보고, 실행 중 문제가 나면 그 문제(오류 객체)를 받아 처리
 @handle_cli_errors
+#마이: 돌려주는 값이 없다는 뜻으로 넌을 넣음
 def run_cli() -> None:
     # [1차 설명]: 명령줄 인자 해석기(메인 메뉴판) 객체를 생성합니다.
     # [2차 설명]: ArgumentParser는 손님이 터미널에 적은 명령어(add, list 등)를 분석해 주는 똑똑한 접수대 기계입니다.
@@ -225,13 +230,15 @@ def run_cli() -> None:
         # [1차 설명]: 이 옵션이 무슨 역할을 하는지 도움말 설명을 적습니다.
         help="데이터 파일 저장 디렉터리 경로 (기본값: ./data)"
     )
-
+    #마이: 실제일은 (예: repo = FileRepository(data_dir=args.data_dir))가 한다.
     # [1차 설명]: 세부 하위 명령어(서브커맨드)들을 관리할 서브파서 관리자를 만듭니다.
     # [2차 설명]: add_subparsers는 add, list, search 처럼 손님이 고를 수 있는 10가지 세부 메뉴판을 꽂아둘 수 있는 메뉴판 거치대입니다.
+    
     subparsers = parser.add_subparsers(dest="command", help="실행할 명령어")
 
     # [1차 설명]: 1번째 메뉴인 'add'(거래 추가) 명령어를 등록합니다.
     # [2차 설명]: 손님이 터미널에 'add'라고 치면 대화형으로 질문을 던져 거래를 추가하도록 메뉴판에 등록합니다.
+    # 마이: budget_app command add을 치면 일로 오는 셈
     subparsers.add_parser("add", help="대화형으로 새로운 거래 내역을 추가합니다.")
 
     # [1차 설명]: 2번째 메뉴인 'list'(목록 조회) 명령어를 등록합니다.
@@ -368,6 +375,7 @@ def run_cli() -> None:
 
     # [1차 설명]: 손님이 터미널에 실제로 입력한 명령어 인자들을 해석하여 객체로 받습니다.
     # [2차 설명]: parse_args()는 손님이 친 글자들을 분석해서 args.command, args.amount 처럼 꺼내 쓰기 쉽게 포장해 주는 실행 명령입니다.
+    # 마이: 여기서 객체로 받아서 분석해서 args값을 구한 다음에 그걸로 아래에서 어떤 함수를 실행할지하는 방식임. 
     args = parser.parse_args()
 
     # [1차 설명]: 아무런 하위 명령어도 입력하지 않고 프로그램 이름만 쳤는지 확인합니다.
@@ -446,6 +454,7 @@ def run_cli() -> None:
     elif args.command == "list":
         # [1차 설명]: 회계사에게 최신 거래 내역을 지정한 개수(args.limit)만큼 뽑아달라고 요청합니다.
         # [2차 설명]: list_transactions 함수가 최신순으로 정렬된 영수증 리스트를 results 변수에 돌려줍니다.
+        #마이: 서비스 74번줄에서 관련 후속 업무, 독자 아이디번호 만들고 저장하는 일함.
         results = service.list_transactions(limit=args.limit)
         # [1차 설명]: 장부에 거래가 1건도 없어서 빈 리스트인지 확인합니다.
         # [2차 설명]: not results는 영수증이 하나도 없다는 뜻입니다.
@@ -469,6 +478,7 @@ def run_cli() -> None:
         for tx in results:
             # [1차 설명]: 태그가 있으면 "(외식, 점심)" 형태로 예쁘게 묶고 없으면 빈 글자로 둡니다.
             # [2차 설명]: ', '.join(tx.tags)로 태그 단어들을 쉼표로 잇고 괄호로 감싸는 짧은 삼항 연산식입니다.
+            # 마이: 태그들을 ,을 사이에 넣어서 하나로 이어서 보기 좋은 문자열로 해서 차트에 넣기 위한 방식
             tag_str = f"({', '.join(tx.tags)})" if tx.tags else ""
             # [1차 설명]: 영수증의 각 칸(ID, 날짜, 구분, 카테고리, 금액, 메모, 태그)을 표 형식으로 한 줄씩 출력합니다.
             # [2차 설명]: {tx.amount:>10,}는 금액 숫자에 천 단위 쉼표를 찍고 10칸 오른쪽 정렬하여 장부 줄을 반듯하게 맞춥니다.
@@ -482,6 +492,8 @@ def run_cli() -> None:
     elif args.command == "search":
         # [1차 설명]: 회계사에게 시작일, 종료일, 카테고리, 타입, 키워드, 태그 조건을 넘겨 검색을 요청합니다.
         # [2차 설명]: service.search_transactions 함수가 전달받은 조건들에 맞는 영수증만 쏙쏙 골라내어 results 리스트에 담아줍니다.
+        # 마이: service파일의 search_transactions함수(정렬등을 하는 함수) 발동됨. 일단 내용을 필터 함수로 넘겨서 관련 된 거래들을 레포지터리 파일의 stream_transactions으로 하나하나 뒤져서 그 값을 받는데
+        #모델파일의 Transaction.from_dict을 통해 이쁜 형태로 반환받음.
         results = service.search_transactions(
             from_date=args.from_date,
             to_date=args.to_date,
@@ -527,6 +539,7 @@ def run_cli() -> None:
     elif args.command == "delete":
         # [1차 설명]: 회계사에게 대상 ID 영수증을 삭제해 달라고 부탁하고 성공 여부(True/False)를 받습니다.
         # [2차 설명]: service.delete_transaction 함수가 장부를 뒤져 해당 ID를 지우고, 성공하면 True를 success에 넘겨줍니다.
+        #마이 서비스
         success = service.delete_transaction(tx_id=args.id)
         # [1차 설명]: 삭제가 성공했는지 확인합니다.
         # [2차 설명]: if success는 삭제 결과가 성공(True)인지 검사하는 조건문입니다.
