@@ -52,7 +52,7 @@ from typing import List
 
 # [1차 설명]: 에러가 나도 프로그램이 튕기지 않게 감싸주는 에어백 데코레이터를 가져옵니다.
 # [2차 설명]: decorators.py에 만든 handle_cli_errors는 빨간 영어 에러 대신 친절한 한국어 안내를 띄워주는 안전 그물망입니다.
-from .decorators import handle_cli_errors
+from .decorators import handle_cli_errors, measure_time, log_operation
 
 # [1차 설명]: 장부 파일에 글씨를 쓰고 읽어오는 창고지기 클래스를 가져옵니다.
 # [2차 설명]: repositories.py의 FileRepository는 하드디스크에 있는 transactions.jsonl 장부 파일을 관리하는 창고지기입니다.
@@ -207,6 +207,8 @@ def prompt_tags() -> List[str]:
 # [2차 설명]: @handle_cli_errors는 이 함수 아래에서 무슨 실수가 나든 무서운 영어 에러 대신 친절한 한국어 안내를 띄워주는 안전장치입니다.
 # 마이: 데코레이터는 원래 함수에 “포장(wrapper)”을 씌웁니다. 그래서 run_cli()를 호출하면 실제로는 포장된 함수가 먼저 실행, 포장된 함수는 원래 함수를 실행해 보고, 실행 중 문제가 나면 그 문제(오류 객체)를 받아 처리
 @handle_cli_errors
+@log_operation("추가기능")
+@measure_time
 #마이: 돌려주는 값이 없다는 뜻으로 넌을 넣음
 def run_cli() -> None:
     # [1차 설명]: 명령줄 인자 해석기(메인 메뉴판) 객체를 생성합니다.
