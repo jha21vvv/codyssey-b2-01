@@ -329,9 +329,3 @@ date,type,category,amount,memo,tags
 - 카테고리 관리
 - CSV import/export
 - 모듈 분리와 데코레이터 기반 공통 로직 처리
-
-필요하면 다음 단계로 이어서 더 다듬을 수 있습니다.
-
-- GitHub용 프로젝트 소개 문구 스타일로 정리
-- README를 영어 버전으로 분리
-- 배지와 로고 섹션 추가
